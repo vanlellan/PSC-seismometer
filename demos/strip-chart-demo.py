@@ -1,5 +1,5 @@
-
-#blah blah blah
+#!/bin/python3
+#display a live-updating strip chart
 
 
 import math as m
