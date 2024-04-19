@@ -21,8 +21,9 @@ try:
         print ("5 ADC    = %lf V"%(ADC_Value[5]*5.0/0x7fffff))
         print ("6 ADC    = %lf V"%(ADC_Value[6]*5.0/0x7fffff))
         print ("7 ADC    = %lf V"%(ADC_Value[7]*5.0/0x7fffff))
-        print ("diff ADC = %lf V"%((ADC_Value[1]-ADC_Value[0])*5.0/0x7fffff))
-        print ("\33[10A")
+        print ("diff 0-1 = %lf V"%((ADC_Value[0]-ADC_Value[1])*5.0/0x7fffff))
+        print ("diff 2-3 = %lf V"%((ADC_Value[2]-ADC_Value[3])*5.0/0x7fffff))
+        print ("\33[11A")
 
         
 except :
