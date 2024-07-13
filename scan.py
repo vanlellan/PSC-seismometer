@@ -26,8 +26,8 @@ with open(fileName,"r") as dfile:
 
 #scan through ch1, find any data points greater than 5mV from zero
 trigI = []
-for i,x in enumerate(ch1):
-    if x>5.0 or x<-5.0:
+for i,x in enumerate(ch0):
+    if x>2.5 or x<-2.5:
         trigI.append(i)
 #open plot of ch0,1,2 data in a window from 5s before to 25s after the trigger (~10 entries/sec)
 cursor = cht[0]
@@ -35,10 +35,20 @@ for i in trigI:
     #don't open additional data points that were already within a previous plot
     if cht[i] > cursor:
         cursor = cht[i+250]
-        fig, (ax, ay, az) = plt.subplots(3, sharex=True)
-        ax.plot(cht[i-50:i+250],ch0[i-50:i+250])
-        ay.plot(cht[i-50:i+250],ch1[i-50:i+250])
-        az.plot(cht[i-50:i+250],ch2[i-50:i+250])
+        fig, (a0, a1, a2, a3) = plt.subplots(4, sharex=True)
+        a0.set_ylim(-5.0,5.0)
+        a1.set_ylim(-5.0,5.0)
+        a2.set_ylim(-5.0,5.0)
+        a3.set_ylim(-5.0,5.0)
+        a0.plot(cht[i-50:i+250],ch0[i-50:i+250])
+        a1.plot(cht[i-50:i+250],ch1[i-50:i+250])
+        a2.plot(cht[i-50:i+250],ch2[i-50:i+250])
+        a3.plot(cht[i-50:i+250],ch3[i-50:i+250])
+        a0.set_ylabel("Ch 0 (mV)")
+        a1.set_ylabel("Ch 1 (mV)")
+        a2.set_ylabel("Ch 2 (mV)")
+        a3.set_ylabel("Ch 3 (mV)")
+        a3.set_xlabel("unix time (s)")
         plt.show()
 
 #add a sinusoidal fit to the data in each plot, output period and amplitude of the fit
