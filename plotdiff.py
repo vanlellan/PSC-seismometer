@@ -9,8 +9,9 @@ ch2 = []
 ch3 = []
 cht = []
 
-with open("seismodiff.txt","r") as dfile:
-    for i in range(350):
+#with open("seismodiff.txt","r") as dfile:
+with open("panama51.txt","r") as dfile:
+    for i in range(1000):
         line = dfile.readline()
         if True:
             data = line.split(',')

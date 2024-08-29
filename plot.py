@@ -1,7 +1,7 @@
 
 
 from matplotlib import pyplot as plt
-
+import sys
 
 ch0 = []
 ch1 = []
@@ -9,10 +9,17 @@ ch2 = []
 ch3 = []
 cht = []
 
-with open("seismo.txt","r") as dfile:
-    for i in range(500):
+if len(sys.argv) != 2:
+    print("Requires exactly one argument: filename of data file to scan.")
+else:
+    fileName = sys.argv[1]
+
+with open(fileName,"r") as dfile:
+    for i in range(100000):
         line = dfile.readline()
-        if True:
+        if line == '':
+            break
+        else:
             data = line.split(',')
             ch0.append(float(data[0]))
             ch1.append(float(data[1]))
@@ -20,14 +27,18 @@ with open("seismo.txt","r") as dfile:
             ch3.append(float(data[3]))
             cht.append(float(data[4]))
 
-ch01 = [x-y for x,y in zip(ch0,ch1)]
-ch23 = [x-y for x,y in zip(ch2,ch3)]
+#ch01 = [x-y for x,y in zip(ch0,ch1)]
+#ch23 = [x-y for x,y in zip(ch2,ch3)]
 
-plt.plot(ch0)
+plt.plot(cht,ch0)
+plt.suptitle("Ch0")
 plt.show()
-plt.plot(ch1)
+plt.plot(cht,ch1)
+plt.suptitle("Ch1")
 plt.show()
-plt.plot(ch01)
+plt.plot(cht,ch2)
+plt.suptitle("Ch2")
 plt.show()
-plt.plot(ch23)
+plt.plot(cht,ch3)
+plt.suptitle("Ch3")
 plt.show()
