@@ -2,14 +2,15 @@
 
 from matplotlib import pyplot as plt
 import sys
-from datetime import datetime, date, UTC
+from datetime import datetime, date, UTC, timedelta, timezone
 import scipy
 
-targetStamp = 1721525053
-#targetDay = date.today()
-targetDay = date.fromtimestamp(targetStamp)
-targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
-targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
+targetDay = datetime.now(timezone.utc) - timedelta(days=1)
+targetStamp = int(targetDay.timestamp())
+#targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+#targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
+targetMin = datetime.utcfromtimestamp(targetStamp).replace(hour=0, minute=0, second=0, microsecond=0)
+targetMax = datetime.utcfromtimestamp(targetStamp).replace(hour=23, minute=59, second=59, microsecond=999999)
 targetMinStamp = targetMin.timestamp()
 targetMaxStamp = targetMax.timestamp()
 
@@ -42,7 +43,8 @@ for fileName in fileNames:
                     break
                 data = line.split(',')
                 tFloat = float(data[4])
-                tHour = int(datetime.fromtimestamp(tFloat,UTC).strftime('%H'))
+                #tHour = int(datetime.fromtimestamp(tFloat,UTC).strftime('%H'))
+                tHour = int(datetime.utcfromtimestamp(tFloat).strftime('%H'))
                 #only load data from target day, group by hour within each channel
                 if float(tFloat)>targetMinStamp and float(tFloat)<targetMaxStamp:
                     heliRaw[tHour][0].append(float(data[0]))
@@ -50,7 +52,8 @@ for fileName in fileNames:
                     heliRaw[tHour][2].append(float(data[2]))
                     #heliRaw[tHour][3].append(float(data[3]))
                     heliRaw[tHour][4].append(tFloat)
-                    fracHour = 60*int(datetime.fromtimestamp(tFloat,UTC).strftime('%M'))+float(datetime.fromtimestamp(tFloat,UTC).strftime('%S.%f'))
+                    #fracHour = 60*int(datetime.fromtimestamp(tFloat,UTC).strftime('%M'))+float(datetime.fromtimestamp(tFloat,UTC).strftime('%S.%f'))
+                    fracHour = 60*int(datetime.utcfromtimestamp(tFloat).strftime('%M'))+float(datetime.utcfromtimestamp(tFloat).strftime('%S.%f'))
                     heliFFT[tHour][4].append(fracHour)
 
 for ii in range(24):
@@ -108,17 +111,26 @@ for ii in range(24):
 #        heli[hour][4].append(fracHour)
 
 for i in heliFFT:
-    plt.plot(heliFFT[i][4],[a+5*(24-i) for a in heliFFT[i][0]],color='black')
-plt.show(block=False)
-plt.pause(5.0)
-plt.close()
+    plt.plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
+#plt.show(block=False)
+#plt.pause(5.0)
+#plt.close()
 
 for i in heliFFT:
-    plt.plot(heliFFT[i][4],[a+5*(24-i) for a in heliFFT[i][1]],color='black')
-plt.show(block=False)
-plt.pause(5.0)
-plt.close()
+    plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='dashed')
+#plt.show(block=False)
+#plt.pause(5.0)
+#plt.close()
 
 for i in heliFFT:
-    plt.plot(heliFFT[i][4],[a+5*(24-i) for a in heliFFT[i][1]],color='black')
+    plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='dotted')
+plt.xlabel("time (minutes)")
+plt.ylabel("time (hours)")
+plt.gca().set_ylim([-0.9,23.9])
+plt.gca().set_xlim([-5,65])
+plt.gca().yaxis.set_major_locator(plt.MultipleLocator(1))
+ticklabels = [item.get_text()+":00" for item in plt.gca().get_yticklabels()]
+plt.gca().set_yticklabels(ticklabels)
+plt.gca().invert_yaxis()
+plt.title(targetDay.strftime('PSC Seismometer, %b %d, %Y'))
 plt.show()
