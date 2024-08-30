@@ -2,10 +2,11 @@
 
 from matplotlib import pyplot as plt
 import sys
-from datetime import datetime, date, UTC, timedelta, timezone
-import scipy
+#from datetime import datetime, date, UTC, timedelta, timezone
+from datetime import datetime, date, timedelta, timezone
+from scipy.fftpack import fft, ifft
 
-targetDay = datetime.now(timezone.utc) - timedelta(days=1)
+targetDay = datetime.now(timezone.utc) - timedelta(days=2)
 targetStamp = int(targetDay.timestamp())
 #targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 #targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -62,16 +63,16 @@ for ii in range(24):
     for jj in range(3):
         if len(heliRaw[ii][jj]) == 0:
             continue
-        fft = scipy.fft.fft(heliRaw[ii][jj])
-        filteredfft = [a for a in fft]
-        for i,a in enumerate(fft):
+        rawfft = fft(heliRaw[ii][jj])
+        filteredfft = [a for a in rawfft]
+        for i,a in enumerate(rawfft):
             if i<(N//150):#high pass, i=250 for N=37500 (one hour), approx 0.0667 Hz
                 filteredfft[i] = 0.0
             elif i>(N//25):#low pass, i=1500 for N=37500 (one hour), approx 0.4 Hz
                 filteredfft[i] = 0.0
             else:
                 filteredfft[i] = a
-        filtered = scipy.fft.ifft(filteredfft)
+        filtered = ifft(filteredfft)
         real = filtered.real
         heliFFT[ii][jj] = real
 #        if ii==2 and jj==0:
@@ -125,12 +126,13 @@ for i in heliFFT:
 for i in heliFFT:
     plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='dotted')
 plt.xlabel("time (minutes)")
-plt.ylabel("time (hours)")
+plt.ylabel("time (hours UTC)")
 plt.gca().set_ylim([-0.9,23.9])
 plt.gca().set_xlim([-5,65])
 plt.gca().yaxis.set_major_locator(plt.MultipleLocator(1))
-ticklabels = [item.get_text()+":00" for item in plt.gca().get_yticklabels()]
-plt.gca().set_yticklabels(ticklabels)
+#ticklabels = [item.get_text()+":00" for item in plt.gca().get_yticklabels()]
+#plt.gca().set_yticklabels(ticklabels)
 plt.gca().invert_yaxis()
 plt.title(targetDay.strftime('PSC Seismometer, %b %d, %Y'))
+plt.get_current_fig_manager().full_screen_toggle()
 plt.show()
