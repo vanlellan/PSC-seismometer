@@ -2,11 +2,17 @@
 
 from matplotlib import pyplot as plt
 import sys
-from datetime import datetime, date, UTC
+from datetime import datetime, date, UTC, timedelta, timezone
 import scipy
 
-#targetDay = date.today()
-targetDay = date.fromtimestamp(1721525053)
+targetDay = datetime.now(timezone.utc) - timedelta(days=1)
+targetStamp = int(targetDay.timestamp())
+#targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+#targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
+targetMin = datetime.utcfromtimestamp(targetStamp).replace(hour=0, minute=0, second=0, microsecond=0)
+targetMax = datetime.utcfromtimestamp(targetStamp).replace(hour=23, minute=59, second=59, microsecond=999999)
+targetMinStamp = targetMin.timestamp()
+targetMaxStamp = targetMax.timestamp()
 
 ch0 = []
 ch1 = []
@@ -19,11 +25,16 @@ if len(sys.argv) == 1:
 else:
     fileNames = sys.argv[1:]
 
+heliRaw = {}
+heliFFT = {}
+for i in range(24):
+    heliRaw[i] = [[],[],[],[],[]]
+    heliFFT[i] = [[],[],[],[],[]]
+
 for fileName in fileNames:
     #only open files that could contain data from today i.e. date(filename) == target or target+1, files are ~2.67 hours long
-    fileStampDate = date.fromtimestamp(int(fileName[-14:-4]))
-    fileShiftDate = date.fromtimestamp(int(fileName[-14:-4])+3600*3)
-    if fileStampDate == targetDay or fileShiftDate == targetDay:
+    fileInt = int(fileName[-14:-4])
+    if fileInt>=int(targetMinStamp-3600*3) and fileInt<=int(targetMaxStamp):
         print("Reading in: ", fileName)
         with open(fileName,"r") as dfile:
             while True:
@@ -31,54 +42,52 @@ for fileName in fileNames:
                 if line=='':
                     break
                 data = line.split(',')
-                #TODO only load data from target day, group by hour within each channel
-                ch0.append(float(data[0]))
-                ch1.append(float(data[1]))
-                ch2.append(float(data[2]))
-                ch3.append(float(data[3]))
-                cht.append(float(data[4]))
-N = len(cht)
-print("N = ", N)
-fft0 = scipy.fft.fft(ch0)
-fft1 = scipy.fft.fft(ch1)
-fft2 = scipy.fft.fft(ch2)
-#plt.plot(fft0.real, color='black')
-#plt.plot(fft0.imag, color='red')
-#plt.show()
-filteredfft0 = [a for a in fft0]
-filteredfft1 = [a for a in fft1]
-filteredfft2 = [a for a in fft2]
-for i,a in enumerate(fft0):
-    if i<700:#high pass, assuming N=100000
-    #if i<N//1428:   #assuming deltaT ~ 0.1s WRONG
-        filteredfft0[i] = 0.0
-        filteredfft1[i] = 0.0
-        filteredfft2[i] = 0.0
-    elif i>4000:#low pass, assuming N=100000
-    #elif i>N//250:  #assuming deltaT ~ 0.1s WRONG
-        filteredfft0[i] = 0.0
-        filteredfft1[i] = 0.0
-        filteredfft2[i] = 0.0
-    else:
-        filteredfft0[i] = a
-        filteredfft1[i] = fft1[i]
-        filteredfft2[i] = fft2[i]
-filtered0 = scipy.fft.ifft(filteredfft0)
-filtered1 = scipy.fft.ifft(filteredfft1)
-filtered2 = scipy.fft.ifft(filteredfft2)
-real0 = filtered0.real
-real1 = filtered1.real
-real2 = filtered2.real
-#plt.plot(ch0, color='black')
-#plt.plot(real0, color='red')
-#plt.show()
+                tFloat = float(data[4])
+                #tHour = int(datetime.fromtimestamp(tFloat,UTC).strftime('%H'))
+                tHour = int(datetime.utcfromtimestamp(tFloat).strftime('%H'))
+                #only load data from target day, group by hour within each channel
+                if float(tFloat)>targetMinStamp and float(tFloat)<targetMaxStamp:
+                    heliRaw[tHour][0].append(float(data[0]))
+                    heliRaw[tHour][1].append(float(data[1]))
+                    heliRaw[tHour][2].append(float(data[2]))
+                    #heliRaw[tHour][3].append(float(data[3]))
+                    heliRaw[tHour][4].append(tFloat)
+                    #fracHour = 60*int(datetime.fromtimestamp(tFloat,UTC).strftime('%M'))+float(datetime.fromtimestamp(tFloat,UTC).strftime('%S.%f'))
+                    fracHour = 60*int(datetime.utcfromtimestamp(tFloat).strftime('%M'))+float(datetime.utcfromtimestamp(tFloat).strftime('%S.%f'))
+                    heliFFT[tHour][4].append(fracHour)
+
+for ii in range(24):
+    N = len(heliRaw[ii][4])
+#    print("N = ", N)
+    for jj in range(3):
+        if len(heliRaw[ii][jj]) == 0:
+            continue
+        fft = scipy.fft.fft(heliRaw[ii][jj])
+        filteredfft = [a for a in fft]
+        for i,a in enumerate(fft):
+            if i<(N//150):#high pass, i=250 for N=37500 (one hour), approx 0.0667 Hz
+                filteredfft[i] = 0.0
+            elif i>(N//25):#low pass, i=1500 for N=37500 (one hour), approx 0.4 Hz
+                filteredfft[i] = 0.0
+            else:
+                filteredfft[i] = a
+        filtered = scipy.fft.ifft(filteredfft)
+        real = filtered.real
+        heliFFT[ii][jj] = real
+#        if ii==2 and jj==0:
+#            plt.plot(fft.real, color='black')
+#            plt.plot(fft.imag, color='red')
+#            plt.show()
+#            plt.plot(heliRaw[ii][jj], color='black')
+#            plt.plot(heliFFT[ii][jj], color='red')
+#            plt.show()
 
 #testing signal/noise discrimination in freq-space
     #it looks like good s/n in the guatematla 6.2 ch0 data is from ~700-4000
     #~700-4000 works well for ch1 also (looks generally cleaner than ch0)
     #~700-4000 works well for ch2 also (looks way cleaner than ch0 and ch1)
-#noises = scipy.fft.fft(ch0[24000:34000],n=100000)
-#signal = scipy.fft.fft(ch0[58000:68000],n=100000)
+#noises = scipy.fft.fft(heliRaw[2][2][250:1250])
+#signal = scipy.fft.fft(heliRaw[3][2][250:1250])
 #noises = scipy.fft.fft(ch1[24000:34000],n=100000)
 #signal = scipy.fft.fft(ch1[58000:68000],n=100000)
 #noises = scipy.fft.fft(ch2[24000:34000],n=100000)
@@ -87,34 +96,41 @@ real2 = filtered2.real
 #plt.plot([a for a in signal.real], color='red', alpha=0.5)
 #plt.show()
 
-#get most recent day
-ymd = datetime.fromtimestamp(max(cht),UTC).strftime('%y-%m-%d')
+#heli = {}
+#for i in range(24):
+#    heli[i] = [[],[],[],[],[]]
+#for i,t in enumerate(cht):
+#    #only fill heli with data from target day
+#    #TODO no longer needed if only target day's data is loaded before the fft
+#    if date.fromtimestamp(t) == targetDay:
+#        hour = int(datetime.fromtimestamp(t,UTC).strftime('%H'))
+#        fracHour = 60*int(datetime.fromtimestamp(t,UTC).strftime('%M'))+float(datetime.fromtimestamp(t,UTC).strftime('%S.%f'))
+#        heli[hour][0].append(real0[i]+5*(24-hour))
+#        heli[hour][1].append(real1[i]+5*(24-hour))
+#        heli[hour][2].append(real2[i]+5*(24-hour))
+#        heli[hour][4].append(fracHour)
 
-heli = {}
-for i in range(24):
-    heli[i] = [[],[],[],[],[]]
-for i,t in enumerate(cht):
-    #only fill heli with data from target day
-    if date.fromtimestamp(t) == targetDay:
-        hour = int(datetime.fromtimestamp(t,UTC).strftime('%H'))
-        fracHour = 60*int(datetime.fromtimestamp(t,UTC).strftime('%M'))+float(datetime.fromtimestamp(t,UTC).strftime('%S.%f'))
-        heli[hour][0].append(real0[i]+5*(24-hour))
-        heli[hour][1].append(real1[i]+5*(24-hour))
-        heli[hour][2].append(real2[i]+5*(24-hour))
-        heli[hour][4].append(fracHour)
+for i in heliFFT:
+    plt.plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
+#plt.show(block=False)
+#plt.pause(5.0)
+#plt.close()
 
-for i in range(24):
-    plt.plot(heli[i][4],heli[i][0],color='black')
-plt.show(block=False)
-plt.pause(5.0)
-plt.close()
+for i in heliFFT:
+    plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='dashed')
+#plt.show(block=False)
+#plt.pause(5.0)
+#plt.close()
 
-for i in range(24):
-    plt.plot(heli[i][4],heli[i][1],color='black')
-plt.show(block=False)
-plt.pause(5.0)
-plt.close()
-
-for i in range(24):
-    plt.plot(heli[i][4],heli[i][2],color='black')
+for i in heliFFT:
+    plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='dotted')
+plt.xlabel("time (minutes)")
+plt.ylabel("time (hours)")
+plt.gca().set_ylim([-0.9,23.9])
+plt.gca().set_xlim([-5,65])
+plt.gca().yaxis.set_major_locator(plt.MultipleLocator(1))
+ticklabels = [item.get_text()+":00" for item in plt.gca().get_yticklabels()]
+plt.gca().set_yticklabels(ticklabels)
+plt.gca().invert_yaxis()
+plt.title(targetDay.strftime('PSC Seismometer, %b %d, %Y'))
 plt.show()
