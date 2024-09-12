@@ -108,17 +108,17 @@ while True:
     for i in heliFFT:
         templine, = plt.plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
         if i==0:
-            templine.set_label("Ch 1")
+            templine.set_label("Vert")
     
     for i in heliFFT:
         templine, = plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='dashed')
         if i==0:
-            templine.set_label("Ch 0")
+            templine.set_label("N/S")
     
     for i in heliFFT:
         templine, = plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='dotted')
         if i==0:
-            templine.set_label("Ch 2")
+            templine.set_label("E/W")
     plt.xlabel("time (minutes)")
     plt.ylabel("time (hours UTC)")
     plt.legend()
