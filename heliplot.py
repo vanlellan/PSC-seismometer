@@ -2,11 +2,12 @@
 
 from matplotlib import pyplot as plt
 import sys
+import os
 #from datetime import datetime, date, UTC, timedelta, timezone
 from datetime import datetime, date, timedelta, timezone
 from scipy.fftpack import fft, ifft
 
-targetDay = datetime.now(timezone.utc) - timedelta(days=2)
+targetDay = datetime.now(timezone.utc) - timedelta(days=20)
 targetStamp = int(targetDay.timestamp())
 #targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 #targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -21,10 +22,12 @@ ch2 = []
 ch3 = []
 cht = []
 
-if len(sys.argv) == 1:
-    print("Requires at least one argument: filenames of data file to scan.")
+if len(sys.argv) != 2:
+    print("Requires exactly one argument: path to directory of data files.")
 else:
-    fileNames = sys.argv[1:]
+    fileDir = sys.argv[1]
+    fileNames = [fileDir+f for f in os.listdir(fileDir) if os.path.isfile(os.path.join(fileDir, f))]
+    print("fileNames: ", fileNames)
 
 heliRaw = {}
 heliFFT = {}
@@ -97,41 +100,34 @@ for ii in range(24):
 #plt.plot([a for a in signal.real], color='red', alpha=0.5)
 #plt.show()
 
-#heli = {}
-#for i in range(24):
-#    heli[i] = [[],[],[],[],[]]
-#for i,t in enumerate(cht):
-#    #only fill heli with data from target day
-#    #TODO no longer needed if only target day's data is loaded before the fft
-#    if date.fromtimestamp(t) == targetDay:
-#        hour = int(datetime.fromtimestamp(t,UTC).strftime('%H'))
-#        fracHour = 60*int(datetime.fromtimestamp(t,UTC).strftime('%M'))+float(datetime.fromtimestamp(t,UTC).strftime('%S.%f'))
-#        heli[hour][0].append(real0[i]+5*(24-hour))
-#        heli[hour][1].append(real1[i]+5*(24-hour))
-#        heli[hour][2].append(real2[i]+5*(24-hour))
-#        heli[hour][4].append(fracHour)
-
 for i in heliFFT:
-    plt.plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
+    templine, = plt.plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
+    if i==0:
+        templine.set_label("Ch 1")
 #plt.show(block=False)
 #plt.pause(5.0)
 #plt.close()
 
 for i in heliFFT:
-    plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='dashed')
+    templine, = plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='dashed')
+    if i==0:
+        templine.set_label("Ch 0")
 #plt.show(block=False)
 #plt.pause(5.0)
 #plt.close()
 
 for i in heliFFT:
-    plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='dotted')
+    templine, = plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='dotted')
+    if i==0:
+        templine.set_label("Ch 2")
 plt.xlabel("time (minutes)")
 plt.ylabel("time (hours UTC)")
+plt.legend()
 plt.gca().set_ylim([-0.9,23.9])
 plt.gca().set_xlim([-5,65])
 plt.gca().yaxis.set_major_locator(plt.MultipleLocator(1))
-#ticklabels = [item.get_text()+":00" for item in plt.gca().get_yticklabels()]
-#plt.gca().set_yticklabels(ticklabels)
+ticklabels = [item.get_text()+":00" for item in plt.gca().get_yticklabels()]
+plt.gca().set_yticklabels(ticklabels)
 plt.gca().invert_yaxis()
 plt.title(targetDay.strftime('PSC Seismometer, %b %d, %Y'))
 plt.get_current_fig_manager().full_screen_toggle()
