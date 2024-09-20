@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta, timezone
 from scipy.fftpack import fft, ifft
 
 def updateTime():
-    targetDay = datetime.now(timezone.utc) - timedelta(days=35)
+    targetDay = datetime.now(timezone.utc) - timedelta(days=0)
     targetStamp = int(targetDay.timestamp())
     #targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     #targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
