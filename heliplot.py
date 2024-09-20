@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta, timezone
 from scipy.fftpack import fft, ifft
 
 def updateTime():
-    targetDay = datetime.now(timezone.utc) - timedelta(days=0)
+    targetDay = datetime.now(timezone.utc) - timedelta(days=35)
     targetStamp = int(targetDay.timestamp())
     #targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     #targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -104,31 +104,40 @@ while True:
 
     targetTime = updateTime()
     heliFFT = getData(fileDir, targetTime)
+   
+    f, ax = plt.subplots(3,1,sharex=True)
+    f.tight_layout()
+    f.subplots_adjust(hspace=0)
+
+    for i in heliFFT:
+        templine, = ax[0].plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
+        #if i==0:
+        #    templine.set_label("Ch 1")
     
     for i in heliFFT:
-        templine, = plt.plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
-        if i==0:
-            templine.set_label("Vert")
+        templine, = ax[1].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='solid')
+        #if i==0:
+        #    templine.set_label("Ch 0")
     
     for i in heliFFT:
-        templine, = plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='dashed')
-        if i==0:
-            templine.set_label("N/S")
-    
-    for i in heliFFT:
-        templine, = plt.plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='dotted')
-        if i==0:
-            templine.set_label("E/W")
-    plt.xlabel("time (minutes)")
-    plt.ylabel("time (hours UTC)")
-    plt.legend()
-    plt.gca().set_ylim([-0.9,23.9])
-    plt.gca().set_xlim([-5,65])
-    plt.gca().yaxis.set_major_locator(plt.MultipleLocator(1))
-    ticklabels = [item.get_text()+":00" for item in plt.gca().get_yticklabels()]
-    plt.gca().set_yticklabels(ticklabels)
-    plt.gca().invert_yaxis()
-    plt.title(targetTime[0].strftime('PSC Seismometer, %b %d, %Y'))
+        templine, = ax[2].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='solid')
+        #if i==0:
+        #    templine.set_label("Ch 2")
+    plt.xlabel("time (minutes)", fontsize=20)
+    ar = [a.twinx() for a in ax]
+    DIR = ["Vertical", "East-West", "North-South"]
+    for j in range(3):
+        #ax[j].legend(loc='upper right',fontsize=20)
+        ax[j].set_ylim([-0.9,23.9])
+        ax[j].set_xlim([-5,65])
+        ax[j].yaxis.set_major_locator(plt.MultipleLocator(1))
+        ticklabels = [item.get_text()+":00" for item in ax[j].get_yticklabels()]
+        ax[j].set_yticklabels(ticklabels)
+        ax[j].invert_yaxis()
+        ax[j].set_ylabel("time (hours UTC)", fontsize=15)
+        ar[j].set_ylabel(DIR[j], fontsize=15)
+        ar[j].tick_params(right=False, labelright=False)
+    f.suptitle(targetTime[0].strftime('PSC Seismometer, %b %d, %Y'), fontsize=30, y=1.00)
     plt.get_current_fig_manager().full_screen_toggle()
     plt.show(block=False)
     plt.pause(600.0)   #pause for ten minutes between plot updates
