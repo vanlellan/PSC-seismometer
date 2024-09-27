@@ -1,6 +1,8 @@
 
+import matplotlib
+matplotlib.use('GTK3Agg')
+import matplotlib.pyplot as plt
 
-from matplotlib import pyplot as plt
 import sys
 import os
 #from datetime import datetime, date, UTC, timedelta, timezone
@@ -16,6 +18,7 @@ def updateTime():
     targetMax = datetime.utcfromtimestamp(targetStamp).replace(hour=23, minute=59, second=59, microsecond=999999)
     targetMinStamp = targetMin.timestamp()
     targetMaxStamp = targetMax.timestamp()
+    print("targetStampDiff: ", targetMaxStamp-targetMinStamp)
     return (targetDay, targetMinStamp, targetMaxStamp)
 
 if len(sys.argv) != 2:
@@ -26,7 +29,7 @@ else:
 
 def getData(dataDir, dataTime):
     fileNames = [dataDir+f for f in os.listdir(dataDir) if os.path.isfile(os.path.join(dataDir, f))]
-    print("fileNames: ", fileNames)
+    #print("fileNames: ", fileNames)
 
     dataRaw = {}
     dataFFT = {}
@@ -37,7 +40,8 @@ def getData(dataDir, dataTime):
     for fileName in fileNames:
         #only open files that could contain data from today i.e. date(filename) == target or target+1, files are ~2.67 hours long
         fileInt = int(fileName[-14:-4])
-        if fileInt>=int(dataTime[1]-3600*3) and fileInt<=int(dataTime[2]):
+        timezoneFudge = 3600*5
+        if fileInt>=int(dataTime[1]-3600*3-timezoneFudge) and fileInt<=int(dataTime[2]):
             print("Reading in: ", fileName)
             with open(fileName,"r") as dfile:
                 while True:
@@ -49,7 +53,7 @@ def getData(dataDir, dataTime):
                     #tHour = int(datetime.fromtimestamp(tFloat,UTC).strftime('%H'))
                     tHour = int(datetime.utcfromtimestamp(tFloat).strftime('%H'))
                     #only load data from target day, group by hour within each channel
-                    if float(tFloat)>dataTime[1] and float(tFloat)<dataTime[2]:
+                    if float(tFloat)>dataTime[1]-timezoneFudge and float(tFloat)<dataTime[2]:
                         dataRaw[tHour][0].append(float(data[0]))
                         dataRaw[tHour][1].append(float(data[1]))
                         dataRaw[tHour][2].append(float(data[2]))
@@ -115,12 +119,12 @@ while True:
         #    templine.set_label("Ch 1")
     
     for i in heliFFT:
-        templine, = ax[1].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='purple',linestyle='solid')
+        templine, = ax[1].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='purple',linestyle='solid')
         #if i==0:
         #    templine.set_label("Ch 0")
     
     for i in heliFFT:
-        templine, = ax[2].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='green',linestyle='solid')
+        templine, = ax[2].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='green',linestyle='solid')
         #if i==0:
         #    templine.set_label("Ch 2")
     plt.xlabel("time (minutes)", fontsize=20)
@@ -131,13 +135,14 @@ while True:
         ax[j].set_ylim([-0.9,23.9])
         ax[j].set_xlim([-5,65])
         ax[j].yaxis.set_major_locator(plt.MultipleLocator(1))
-        ticklabels = [item.get_text()+":00" for item in ax[j].get_yticklabels()]
-        ax[j].set_yticklabels(ticklabels)
+        #iticklabels = [item.get_text()+":00" for item in ax[j].get_yticklabels()]
+        #ax[j].set_yticklabels(ticklabels)
         ax[j].invert_yaxis()
         ax[j].set_ylabel("time (hours UTC)", fontsize=15)
-        ar[j].set_ylabel(DIR[j], fontsize=15)
+        ar[j].set_ylabel(DIR[j], fontsize=25)
         ar[j].tick_params(right=False, labelright=False)
-    f.suptitle(targetTime[0].strftime('PSC Seismometer, %b %d, %Y'), fontsize=30, y=1.00)
+    f.suptitle(targetTime[0].strftime('PSC Seismometer, %b %d, %Y'), fontsize=30, y=0.98)
+    f.canvas.manager.window.move(2500,100)
     plt.get_current_fig_manager().full_screen_toggle()
     plt.show(block=False)
     plt.pause(600.0)   #pause for ten minutes between plot updates
