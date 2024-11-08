@@ -9,8 +9,8 @@ import os
 from datetime import datetime, date, timedelta, timezone
 from scipy.fftpack import fft, ifft
 
-def updateTime():
-    targetDay = datetime.now(timezone.utc) - timedelta(days=0)
+def updateTime(offset = 0):
+    targetDay = datetime.now(timezone.utc) - timedelta(days=offset)
     targetStamp = int(targetDay.timestamp())
     #targetMin = datetime.fromtimestamp(targetStamp, UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     #targetMax = datetime.fromtimestamp(targetStamp, UTC).replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -72,9 +72,11 @@ def getData(dataDir, dataTime):
             rawfft = fft(dataRaw[ii][jj])
             filteredfft = [a for a in rawfft]
             for i,a in enumerate(rawfft):
-                if i<(N//150):#high pass, i=250 for N=37500 (one hour), approx 0.0667 Hz
+                #if i<(N//150):#high pass, i=250 for N=37500 (one hour), approx 0.0667 Hz
+                if i<(N//750):#high pass, i=250 for N=37500 (one hour), approx 0.0667 Hz
                     filteredfft[i] = 0.0
-                elif i>(N//25):#low pass, i=1500 for N=37500 (one hour), approx 0.4 Hz
+                #elif i>(N//25):#low pass, i=1500 for N=37500 (one hour), approx 0.4 Hz
+                elif i>(N//5):#low pass, i=1500 for N=37500 (one hour), approx 0.4 Hz
                     filteredfft[i] = 0.0
                 else:
                     filteredfft[i] = a
@@ -106,42 +108,54 @@ def getData(dataDir, dataTime):
 
 while True:
 
-    targetTime = updateTime()
-    heliFFT = getData(fileDir, targetTime)
+    todayTime = updateTime(0)
+    todayFFT = getData(fileDir, todayTime)
+    yesterdayTime = updateTime(1)
+    yesterdayFFT = getData(fileDir, yesterdayTime)
    
-    f, ax = plt.subplots(3,1,sharex=True)
-    f.tight_layout()
-    f.subplots_adjust(hspace=0)
+    f, ax = plt.subplots(3,2,sharex=True)
+    #f.tight_layout()
+    #f.subplots_adjust(hspace=0)
 
-    for i in heliFFT:
-        templine, = ax[0].plot([t/60 for t in heliFFT[i][4]], [(a/5)+i for a in heliFFT[i][1]],color='black',linestyle='solid')
-        #if i==0:
-        #    templine.set_label("Ch 1")
+    for i in todayFFT:
+        templine, = ax[0][1].plot([t/60 for t in todayFFT[i][4]], [(a/5)+i for a in todayFFT[i][1]],color='black',linestyle='solid')
     
-    for i in heliFFT:
-        templine, = ax[1].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][2]],color='purple',linestyle='solid')
-        #if i==0:
-        #    templine.set_label("Ch 0")
+    for i in todayFFT:
+        templine, = ax[1][1].plot([t/60 for t in todayFFT[i][4]] ,[(a/5)+i for a in todayFFT[i][2]],color='purple',linestyle='solid')
     
-    for i in heliFFT:
-        templine, = ax[2].plot([t/60 for t in heliFFT[i][4]] ,[(a/5)+i for a in heliFFT[i][0]],color='green',linestyle='solid')
-        #if i==0:
-        #    templine.set_label("Ch 2")
-    plt.xlabel("time (minutes)", fontsize=20)
-    ar = [a.twinx() for a in ax]
+    for i in todayFFT:
+        templine, = ax[2][1].plot([t/60 for t in todayFFT[i][4]] ,[(a/5)+i for a in todayFFT[i][0]],color='green',linestyle='solid')
+
+    for i in yesterdayFFT:
+        templine, = ax[0][0].plot([t/60 for t in yesterdayFFT[i][4]], [(a/5)+i for a in yesterdayFFT[i][1]],color='black',linestyle='solid')
+    
+    for i in yesterdayFFT:
+        templine, = ax[1][0].plot([t/60 for t in yesterdayFFT[i][4]] ,[(a/5)+i for a in yesterdayFFT[i][2]],color='purple',linestyle='solid')
+    
+    for i in yesterdayFFT:
+        templine, = ax[2][0].plot([t/60 for t in yesterdayFFT[i][4]] ,[(a/5)+i for a in yesterdayFFT[i][0]],color='green',linestyle='solid')
+
+    ax[2][0].set_xlabel("time (minutes)", fontsize=20)
+    ax[2][1].set_xlabel("time (minutes)", fontsize=20)
+    ar = [a[0].twinx() for a in ax]
     DIR = ["Vertical", "East-West", "North-South"]
     for j in range(3):
-        #ax[j].legend(loc='upper right',fontsize=20)
-        ax[j].set_ylim([-0.9,23.9])
-        ax[j].set_xlim([-5,65])
-        ax[j].yaxis.set_major_locator(plt.MultipleLocator(1))
-        #iticklabels = [item.get_text()+":00" for item in ax[j].get_yticklabels()]
-        #ax[j].set_yticklabels(ticklabels)
-        ax[j].invert_yaxis()
-        ax[j].set_ylabel("time (hours UTC)", fontsize=15)
-        ar[j].set_ylabel(DIR[j], fontsize=25)
-        ar[j].tick_params(right=False, labelright=False)
-    f.suptitle(targetTime[0].strftime('PSC Seismometer, %b %d, %Y'), fontsize=30, y=0.98)
+        for k in range(2):
+            #ax[j].legend(loc='upper right',fontsize=20)
+            if k==1:
+                ax[j][k].yaxis.tick_right()
+                ax[j][k].yaxis.set_label_position("right")
+            ax[j][k].set_ylim([-0.9,23.9])
+            ax[j][k].set_xlim([-5,65])
+            ax[j][k].yaxis.set_major_locator(plt.MultipleLocator(1))
+            #iticklabels = [item.get_text()+":00" for item in ax[j].get_yticklabels()]
+            #ax[j].set_yticklabels(ticklabels)
+            ax[j][k].invert_yaxis()
+            ax[j][k].set_ylabel("time (hours UTC)", fontsize=15)
+            ar[j].set_ylabel(DIR[j], fontsize=25)
+            ar[j].tick_params(right=False, labelright=False)
+    ax[0][0].set_title(yesterdayTime[0].strftime('PSC Seismometer, %b %d, %Y'), fontsize=30, y=0.98)
+    ax[0][1].set_title(todayTime[0].strftime('PSC Seismometer, %b %d, %Y'), fontsize=30, y=0.98)
     f.canvas.manager.window.move(2500,100)
     plt.get_current_fig_manager().full_screen_toggle()
     plt.show(block=False)
